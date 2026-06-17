@@ -1,50 +1,22 @@
 import { Router } from 'express'
-import { validateData } from '../middlewares/validateData'
-import {
-  categoryParamsSchema,
-  categoryQueryPaginationSchema,
-  createCategorySchema,
-  updateCategorySchema,
-} from '../schemas/category.schema'
-import {
-  listCategories,
-  getCategoryById,
-  createCategory,
-  updateCategory,
-  deleteCategory,
-} from '../controllers/category.controller'
+import { CategoryController } from '../controllers/CategoryController'
+import { CategoryService } from '../services/CategoryService'
+import { CategoryRepository } from '../repositories/CategoryRepository'
+import { authMiddleware, authorize } from '../middlewares/auth'
 
 const router = Router()
 
-// GET /category?page=1&size=10
-router.get('/',
-  validateData(categoryQueryPaginationSchema, 'query'),
-  listCategories
-)
+const categoryRepository = new CategoryRepository()
+const categoryService = new CategoryService(categoryRepository)
+const categoryController = new CategoryController(categoryService)
 
-// GET /category/:id
-router.get('/:id',
-  validateData(categoryParamsSchema, 'params'),
-  getCategoryById
-)
+// ── Rotas públicas ─────────────────────────────────────
+router.get('/', categoryController.getAll)
+router.get('/:id', categoryController.getById)
 
-// POST /category
-router.post('/',
-  validateData(createCategorySchema, 'body'),
-  createCategory
-)
-
-// PUT /category/:id
-router.put('/:id',
-  validateData(categoryParamsSchema, 'params'),
-  validateData(updateCategorySchema, 'body'),
-  updateCategory
-)
-
-// DELETE /category/:id
-router.delete('/:id',
-  validateData(categoryParamsSchema, 'params'),
-  deleteCategory
-)
+// ── Rotas protegidas (admin) ───────────────────────────
+router.post('/', authMiddleware, authorize('admin'), categoryController.create)
+router.put('/:id', authMiddleware, authorize('admin'), categoryController.update)
+router.delete('/:id', authMiddleware, authorize('admin'), categoryController.delete)
 
 export default router
